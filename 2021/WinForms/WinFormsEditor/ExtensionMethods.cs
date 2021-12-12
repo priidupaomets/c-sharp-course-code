@@ -26,14 +26,37 @@ namespace WinFormsEditor
                    y >= referenceY - tolerance && y <= referenceY + tolerance;
         }
 
+        public static bool IsWithinBounds(this Point value, Point reference, Size size, int tolerance = 0)
+        {
+            return IsWithinBounds(value.X, value.Y, reference.X, reference.Y, 
+                size.Width, size.Height, tolerance);
+        }
+
+        public static bool IsWithinBounds(this Point value, int referenceX, int referenceY,
+          int referenceWidth, int referenceHeight, int tolerance = 0)
+        {
+            return IsWithinBounds(value.X, value.Y, referenceX, referenceY, 
+                referenceWidth, referenceHeight, tolerance);
+        }
+
+        private static bool IsWithinBounds(int x, int y, int referenceX, int referenceY,
+            int referenceWidth, int referenceHeight, int tolerance = 0)
+        {
+            return x >= referenceX - tolerance && x <= referenceX + referenceWidth + tolerance &&
+                   y >= referenceY - tolerance && y <= referenceY + referenceHeight + tolerance;
+        }
+
         public static SelectionHandle GetSelectionHandle(this Shape shape, Point value,
           int toleranceInPixels = 2)
         {
             SelectionHandle handlePoint = SelectionHandle.None;
 
+            // Nurgad
             if (value.IsWithinTolerance(shape.Location, toleranceInPixels))
                 handlePoint = SelectionHandle.TopLeft;
-            else if (value.IsWithinTolerance(shape.Location + shape.Size, toleranceInPixels))
+            else if (value.IsWithinTolerance(shape.Location.X + shape.Size.Width,
+                                             shape.Location.Y + shape.Size.Height,
+                                             toleranceInPixels))
                 handlePoint = SelectionHandle.BottomRight;
             else if (value.IsWithinTolerance(shape.Location.X + shape.Size.Width,
                                              shape.Location.Y, toleranceInPixels))
@@ -43,6 +66,7 @@ namespace WinFormsEditor
                                              toleranceInPixels))
                 handlePoint = SelectionHandle.BottomLeft;
 
+            // Ülemine ja alumine keskkoht
             else if (value.IsWithinTolerance(shape.Location.X + (shape.Size.Width / 2),
                                              shape.Location.Y, toleranceInPixels))
                 handlePoint = SelectionHandle.TopCenter;
@@ -51,6 +75,7 @@ namespace WinFormsEditor
                                              toleranceInPixels))
                 handlePoint = SelectionHandle.BottomCenter;
 
+            // Külgmised keskkohad
             else if (value.IsWithinTolerance(shape.Location.X,
                                              shape.Location.Y + (shape.Size.Height / 2),
                                              toleranceInPixels))
@@ -71,6 +96,7 @@ namespace WinFormsEditor
 
             int halfPointSize = pointSize / 2;
 
+            // Nurgad
             g.FillRectangle(selectionBrush,
                 shape.Location.X - halfPointSize, shape.Location.Y - halfPointSize,
                 pointSize, pointSize);
@@ -88,6 +114,28 @@ namespace WinFormsEditor
             g.FillRectangle(selectionBrush,
                 shape.Location.X + shape.Size.Width - halfPointSize,
                 shape.Location.Y + shape.Size.Height - halfPointSize,
+                pointSize, pointSize);
+
+            // Ülemine ja alumine keskkoht
+            g.FillRectangle(selectionBrush,
+                shape.Location.X + (shape.Size.Width / 2) - halfPointSize, 
+                shape.Location.Y - halfPointSize,
+                pointSize, pointSize);
+
+            g.FillRectangle(selectionBrush,
+                shape.Location.X + (shape.Size.Width / 2) - halfPointSize,
+                shape.Location.Y + shape.Size.Height - halfPointSize,
+                pointSize, pointSize);
+
+            // Külgmised keskkohad
+            g.FillRectangle(selectionBrush,
+                shape.Location.X - halfPointSize,
+                shape.Location.Y + (shape.Size.Height / 2) - halfPointSize,
+                pointSize, pointSize);
+
+            g.FillRectangle(selectionBrush,
+                shape.Location.X + shape.Size.Width - halfPointSize,
+                shape.Location.Y + (shape.Size.Height / 2) - halfPointSize,
                 pointSize, pointSize);
         }
 

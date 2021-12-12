@@ -13,16 +13,17 @@ namespace WinFormsEditor
 {
     public partial class ShapeEditorControl : UserControl
     {
+        private int SelectionHandleToleranceInPizels = 8; // Praegu on tolerantsiks 8 pikslit
+
         private List<Shape> _shapes = new List<Shape>();
         private EditorMode _mode;
-        private int SelectionHandleToleranceInPizels = 8;
         private Point _mouseOrigin = Point.Empty;
         private Shape? _currentShape = null;
         private Point _currentShapeLocation = Point.Empty;
         private Size _currentShapeSize = Size.Empty;
         private SelectionHandle _currentSelectionHandle = SelectionHandle.None;
         private string _currentDocumentName = string.Empty;
-        // Kasutame värelusvaba joonistamise jaoks tausalt olevat Bitmap-i
+        // Kasutame värelusvaba joonistamise jaoks tausal olevat Bitmap-i
         Bitmap? _drawBuffer = null;
 
         public ShapeEditorControl()
@@ -45,23 +46,32 @@ namespace WinFormsEditor
         private void RequestRedraw()
         {
             DrawShapes();
-            //Invalidate();
+            // Invalidate põhjustab Paint sündmuse välja kutsumise, millest oleks kasu,
+            // kui me kogu joonistamise selle sees teeks. Praegu sobib paremini otsene
+            // DrawShapes() välja kutsumine
+            //Invalidate(); 
         }
 
         private void ShapeEditorControl_MouseClick(object sender, MouseEventArgs e)
         {
             var mousePos = e.Location;
 
-            if (Mode == EditorMode.Select && mousePos.IsWithinTolerance(_mouseOrigin, 4))
+            // IsWithinTolerance kasutame selleks, et mitte lugeda hiire vajutust ja lahti 
+            // laskmist hiire klikiks, kui me oleme vahepeal algsest alla vajutamise kohast 
+            // liikunud kaugemale kui tolerantsi poolt lubatud (praegu 2 pikslit igas suunas).
+            // Vastasel juhul võtaks me valiku maha niipea, kui kujundi liigutamise võisuuruse
+            // muutmise oleme lõpetanud
+            if (Mode == EditorMode.Select && mousePos.IsWithinTolerance(_mouseOrigin, 2))
             {
                 var shape = GetShapeAtPosition(mousePos);
                 if (shape != null)
                 {
+                    // Kui Shift klahv on alla vajutatud, lubame multi-selecti
                     if (Control.ModifierKeys == Keys.Shift)
                     {
                         shape.Selected = !shape.Selected;
                     }
-                    else
+                    else // muidu valime ainult selle, mille peale klikkisime
                     {
                         shape.Selected = true;
 
@@ -81,7 +91,7 @@ namespace WinFormsEditor
 
             if (Mode == EditorMode.Select)
             {
-                _currentShape = GetShapeAtPosition(_mouseOrigin);
+                _currentShape = GetShapeAtPosition(_mouseOrigin, SelectionHandleToleranceInPizels);
                 _currentShapeLocation = _currentShape?.Location ?? Point.Empty;
                 _currentShapeSize = _currentShape?.Size ?? Size.Empty;
                 _currentSelectionHandle = _currentShape?.GetSelectionHandle(_mouseOrigin,
@@ -105,16 +115,7 @@ namespace WinFormsEditor
 
             MouseLocationChanged?.Invoke(this, currentLocation);
 
-            // Esiteks on vaja aru saada, kas oleme mõne valitud kujundi kohal
-            var shape = GetShapeAtPosition(currentLocation);
-
-            SelectionHandle selectionHandle =
-                shape?.GetSelectionHandle(currentLocation, SelectionHandleToleranceInPizels)
-                ?? SelectionHandle.None;
-            bool shapeIsInBounds = shape?.IsInBounds(currentLocation) ?? false;
-            bool shapeIsSelected = shape?.Selected ?? false;
-
-            UpdateCursor(selectionHandle, shapeIsInBounds, shapeIsSelected);
+            UpdateCursor(currentLocation);
 
             if (e.Button == MouseButtons.None || _currentShape == null)
                 return;
@@ -126,12 +127,18 @@ namespace WinFormsEditor
                 if (!e.Button.HasFlag(MouseButtons.Left))
                     return; // Jäta aktiivse kujundi puudumisel ülejäänud kood vahele
 
+                // Teeme järgnevat ainult siis, kui kujund on valitud.
+                // Muidu võime liigutada ka seda kujundit, mis valitud pole, kuid on hiire all
+                if (!_currentShape.Selected)
+                    return;
+
                 // Arvutame nihke hiire algpositsiooni ja praeguse koha vahel
                 int dx = e.Location.X - _mouseOrigin.X;
                 int dy = e.Location.Y - _mouseOrigin.Y;
 
                 if (_currentSelectionHandle != SelectionHandle.None)
                 {
+                    // Märkus: See kood ei oska negatiivseid suuruse väärtusi korrektselt hallata
                     switch (_currentSelectionHandle)
                     {
                         case SelectionHandle.None:
@@ -141,6 +148,7 @@ namespace WinFormsEditor
                                                                _currentShapeLocation.Y + dy);
                             _currentShape.Size = new Size(_currentShape.Size.Width,
                                                           _currentShapeSize.Height - dy);
+
                             break;
                         case SelectionHandle.BottomCenter: // Muudame ainult Height väärtust
                             _currentShape.Size = new Size(_currentShape.Size.Width,
@@ -156,13 +164,14 @@ namespace WinFormsEditor
                             _currentShape.Size = new Size(_currentShapeSize.Width + dx,
                                                           _currentShape.Size.Height);
                             break;
-                        case SelectionHandle.TopLeft:      // Muudame X, Y,  Width ja Height väärtusi
+                        case SelectionHandle.TopLeft:      // Muudame X, Y, Width ja Height väärtusi
                             _currentShape.Location = new Point(_currentShapeLocation.X + dx,
                                                                _currentShapeLocation.Y + dy);
                             _currentShape.Size = new Size(_currentShapeSize.Width - dx,
                                                           _currentShapeSize.Height - dy);
                             break;
                         case SelectionHandle.BottomRight:  // Muudame Width ja Height väärtusi
+
                             _currentShape.Size = new Size(_currentShapeSize.Width + dx,
                                                           _currentShapeSize.Height + dy);
                             break;
@@ -182,7 +191,7 @@ namespace WinFormsEditor
                             break;
                     }
                 }
-                else if (shapeIsInBounds)
+                else 
                 {
                     // Arvutame kujundi uue algpositsiooni, milleks on tema salvestatud 
                     // algpositsioon + nihe
@@ -192,7 +201,7 @@ namespace WinFormsEditor
                     _currentShape.Location = new Point(newX, newY);
                 }
             }
-            else // it is a shape drawing mode
+            else // Oleme kujundi joonistamise / lisamise režiimis
             {
                 if (_currentShape == null)
                     return;
@@ -228,9 +237,18 @@ namespace WinFormsEditor
             RequestRedraw();
         }
 
-        private void UpdateCursor(SelectionHandle selectionHandle, bool shapeIsInBounds, bool shapeIsSelected)
+        private void UpdateCursor(Point location)
         {
             Cursor cursor = Cursors.Default; // Vaikimisi kursor, kui muud pole valitud
+
+            // Kas oleme mõne valitud kujundi kohal. Kui null, siis ei ole
+            var shape = GetShapeAtPosition(location, SelectionHandleToleranceInPizels);
+
+            SelectionHandle selectionHandle = 
+                shape?.GetSelectionHandle(location, SelectionHandleToleranceInPizels)
+                ?? SelectionHandle.None;
+            bool shapeIsSelected = shape?.Selected ?? false;
+
 
             // Kuna kursoreid on vaja kohandada sõltumata sellest, kas hiire nupp on alla vajutatud 
             // või mitte, siis kursori valik sõltub režiimist. Ehk neid on vaja kuvada vaid siis, 
@@ -245,7 +263,7 @@ namespace WinFormsEditor
                         case SelectionHandle.None:
                             // Kui Handle point pole määratud ja hiir asub kujundi piirides, 
                             // siis saame liigutada
-                            if (shapeIsInBounds)
+                            if (shape != null)
                             {
                                 if (shapeIsSelected)
                                     cursor = Cursors.SizeAll;
@@ -281,7 +299,7 @@ namespace WinFormsEditor
                             break;
                     }
                 }
-                else if (shapeIsInBounds)
+                else if (shape != null)
                 {
                     cursor = Cursors.Hand;
                 }
@@ -315,7 +333,6 @@ namespace WinFormsEditor
             _drawBuffer?.Dispose();
             _drawBuffer = null;
         }
-
 
         private void DrawShapes()
         {
@@ -366,11 +383,11 @@ namespace WinFormsEditor
         //    return null;
         //}
 
-        private Shape? GetShapeAtPosition(Point position)
+        private Shape? GetShapeAtPosition(Point position, int tolerance = 0)
         {
             foreach (var shape in _shapes)
             {
-                if (shape.IsInBounds(position))
+                if (shape.IsInBounds(position, tolerance))
                     return shape;
             }
 

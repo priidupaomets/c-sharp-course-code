@@ -1,0 +1,40 @@
+                    Point newLocation = _currentShape.Location;
+                    Size newSize = _currentShape.Size;
+
+
+                       case SelectionHandle.BottomCenter: // Muudame ainult Height väärtust
+                            //newLocation.X = _currentShape.Location.X;
+                            //newLocation.Y = _currentShape.Location.Y;
+                            //newSize.Width = _currentShape.Size.Width;
+                            //newSize.Height = _currentShapeSize.Height + dy;
+
+                            //(newLocation, newSize) = AdjustLocationAndSize(newLocation, newSize);
+
+                            //_currentShape.Location = newLocation;
+                            //_currentShape.Size = newSize;
+
+                            _currentShape.Size = new Size(_currentShape.Size.Width,
+                                                          _currentShapeSize.Height + dy);
+                            break;
+
+
+        private (Point, Size) AdjustLocationAndSize(Point desiredLocation, Size desiredSize)
+        {
+            Point newLocation = desiredLocation;
+            Size newSize = desiredSize;
+
+            if (desiredSize.Width < 0)
+            {
+                int absChange = Math.Abs(desiredSize.Width);
+                newLocation.X = newLocation.X - absChange;
+                newSize.Width = absChange;
+            }
+            if (desiredSize.Height < 0)
+            {
+                int absChange = Math.Abs(desiredSize.Height);
+                newLocation.Y = newLocation.Y - absChange;
+                newSize.Height = absChange;
+            }
+
+            return (newLocation, newSize);
+        }

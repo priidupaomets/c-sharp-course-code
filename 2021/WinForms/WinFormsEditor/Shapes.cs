@@ -30,12 +30,13 @@ namespace WinFormsEditor
         public abstract void Draw(Graphics g);
         //public abstract void DrawSelection(Graphics g);
 
-        public virtual bool IsInBounds(Point value)
+        public virtual bool IsInBounds(Point value, int tolerance = 0)
         {
-            if (value.X >= Location.X &&
-                value.X <= (Location.X + Size.Width) &&
-                value.Y >= Location.Y &&
-                value.Y <= (Location.Y + Size.Height))
+            if (value.IsWithinBounds(Location, Size, tolerance))
+            //if (value.X >= Location.X &&
+            //    value.X <= (Location.X + Size.Width) &&
+            //    value.Y >= Location.Y &&
+            //    value.Y <= (Location.Y + Size.Height))
             {
                 return true;
             }
@@ -72,28 +73,12 @@ namespace WinFormsEditor
             Size = size;
         }
 
-
         public override void Draw(Graphics g)
         {
             g.DrawRectangle(Pen,
                 Location.X, Location.Y,
                 Size.Width, Size.Height);
         }
-
-        //public override void DrawSelection(Graphics g)
-        //{
-        //    Pen selectionPen = new Pen(Color.Black);
-        //    Brush selectionBrush = new SolidBrush(Color.Black);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y + Size.Height - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2, 
-        //                                    Location.Y + Size.Height - 2, 4, 4);
-        //}
     }
 
     public class EllipseShape : Shape
@@ -122,20 +107,6 @@ namespace WinFormsEditor
                 Location.X, Location.Y,
                 Size.Width, Size.Height);
         }
-        //public override void DrawSelection(Graphics g)
-        //{
-        //    Pen selectionPen = new Pen(Color.Black);
-        //    Brush selectionBrush = new SolidBrush(Color.Black);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y + Size.Height - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2,
-        //                                    Location.Y + Size.Height - 2, 4, 4);
-        //}
     }
 
     public class TextShape : Shape
@@ -154,20 +125,6 @@ namespace WinFormsEditor
             g.DrawString(Text, Font, Brush, 
                 new RectangleF(Location.X, Location.Y, Size.Width, Size.Height));
         }
-        //public override void DrawSelection(Graphics g)
-        //{
-        //    Pen selectionPen = new Pen(Color.Black);
-        //    Brush selectionBrush = new SolidBrush(Color.Black);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y + Size.Height - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2,
-        //                                    Location.Y + Size.Height - 2, 4, 4);
-        //}
 
         public Brush Brush { get; set; }
         public Font Font { get; set; }
@@ -186,20 +143,6 @@ namespace WinFormsEditor
             g.DrawLines(Pen, Points.ToArray());
         }
 
-        //public override void DrawSelection(Graphics g)
-        //{
-        //    Pen selectionPen = new Pen(Color.Black);
-        //    Brush selectionBrush = new SolidBrush(Color.Black);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2, Location.Y - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X - 2, Location.Y + Size.Height - 2, 4, 4);
-
-        //    g.FillRectangle(selectionBrush, Location.X + Size.Width - 2,
-        //                                    Location.Y + Size.Height - 2, 4, 4);
-        //}
         public List<Point> Points { get; set; }
     }
 }
